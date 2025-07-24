@@ -1,0 +1,50 @@
+[
+	{
+		"labels": {
+			"job": "vm_app"
+		},
+		"targets": [
+			"192.168.56.101:9100"
+		]
+	},
+	{
+		"labels": {
+			"job": "docker"
+		},
+		"targets": [
+			"192.168.56.101:8090"
+		]
+	},
+	{
+		"labels": {
+			"job": "postgre"
+		},
+		"targets": [
+			"192.168.56.101:9187"
+		]
+	},
+	{
+		"labels": {
+			"job": "nginx"
+		},
+		"targets": [
+			"192.168.56.101:9113"
+		]
+	},
+	{
+		"labels": {
+			"job": "vm_promet"
+		},
+		"targets": [
+			"192.168.56.101:9113"
+		]
+	},
+	{
+		"labels": {
+			"job": "blackbox_metr"
+		},
+		"targets": [
+			"192.168.56.101:9115"
+		]
+	}
+]

@@ -1,0 +1,72 @@
+services:
+    nginx_exporter:
+        image: nginx/nginx-prometheus-exporter
+        container_name: nginx_exporter
+        ports:
+            - "9113:9113"
+        command:
+            - -nginx.scrape-uri=http://10.0.2.15:8080/stub_status
+        restart: on-failure
+
+    casdvisor:    
+        image: gcr.io/cadvisor/cadvisor:latest
+        container_name: cadvisor_exporter
+        ports:
+            - "8090:8080"
+        privileged: true
+        devices:
+            - /dev/kmsg:/dev/kmsg
+        volumes:
+            - /:/rootfs:ro
+            - /var/run:/var/run:ro
+            - /sys:/sys:ro
+            - /var/lib/docker:/var/lib/docker:ro
+            - /cgroup:/cgroup:ro
+        restart: on-failure
+
+    pgsql:
+        image: postgres
+        restart: on-failure
+        environment:
+            POSTGRES_PASSWORD: qwerty123
+  
+    pgsql_exporter:
+        image: quay.io/prometheuscommunity/postgres-exporter
+        restart: on-failure          
+        environment:
+            DATA_SOURCE_UI: postgresql:5432/postgres?sslmode=disable
+            DATA_SOURCE_USER: postgres
+            DATA_SOURCE_PASS: qwerty123
+        ports:
+            - "9187:9187"
+        depends_on:
+            - pgsql
+    
+    blackbox:
+        image: quay.io/prometheus/blackbox-exporter
+        container_name: blackbox
+        ports:
+            - "9115:9115"
+        volumes:
+            - ./blackbox.yml:/config/blackbox.yml
+        command:
+            -  '--config.file=/config/blackbox.yml'
+
+    test_app1:
+        image: test_app:1.0
+        container_name: test_app1
+        ports:
+            - "32768:7000"
+        restart: on-failure
+        depends_on:
+            - pgsql
+    
+    test_app2:
+        image: test_app:1.0
+        container_name: test_app2
+        ports:
+            - "32769:7000"
+        restart: on-failure
+        depends_on:
+            - pgsql
+
