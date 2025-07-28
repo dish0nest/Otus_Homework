@@ -1,16 +1,25 @@
 global:
+    # Сбор метрик каждые 5 секунд
     scrape_interval: 5s
 
 scrape_configs:
-    #  - job_name: 'node-exporter'
-    #    static_configs:
-    #      - targets: ['node-exporter:9100']
+    # Сбор метрик, таргеты прописаны в отдельном json
+    # Используется аутентификация с помощью сертификата и данных УЗ
     - job_name: "nodes"
+      # схема подключения по https
+      scheme: https
       file_sd_configs:
           - files:
                 - /etc/prometheus/targets.json
+      tls_config:
+          ca_file: /etc/prometheus/server.crt
+      basic_auth:
+          username: admin
+          password: qwerty123
+    # Проверка работоспособности двух котнейнеров, где работает приложение по http
     - job_name: "blackbox_health"
       metrics_path: /probe
+      scheme: https
       params:
           module: [http_2xx]
       static_configs:
@@ -24,3 +33,8 @@ scrape_configs:
             target_label: instance
           - target_label: __address__
             replacement: 192.168.56.101:9115
+      tls_config:
+         ca_file: /etc/prometheus/server.crt
+      basic_auth:
+         username: admin
+         password: qwerty123

@@ -3,16 +3,16 @@ services:
         image: nginx/nginx-prometheus-exporter
         container_name: nginx_exporter
         ports:
-            - "9113:9113"
+            - "127.0.0.1:9113:9113"
         command:
-            - -nginx.scrape-uri=http://10.0.2.15:8080/stub_status
+            - -nginx.scrape-uri=http://192.168.56.101:8080/stub_status
         restart: on-failure
 
-    casdvisor:    
+    cadvisor:
         image: gcr.io/cadvisor/cadvisor:latest
         container_name: cadvisor_exporter
         ports:
-            - "8090:8080"
+            - "127.0.0.1:8090:8080"
         privileged: true
         devices:
             - /dev/kmsg:/dev/kmsg
@@ -38,7 +38,7 @@ services:
             DATA_SOURCE_USER: postgres
             DATA_SOURCE_PASS: qwerty123
         ports:
-            - "9187:9187"
+            - "127.0.0.1:9187:9187"
         depends_on:
             - pgsql
     
@@ -46,7 +46,7 @@ services:
         image: quay.io/prometheus/blackbox-exporter
         container_name: blackbox
         ports:
-            - "9115:9115"
+            - "127.0.0.1:9115:9115"
         volumes:
             - ./blackbox.yml:/config/blackbox.yml
         command:
@@ -56,7 +56,7 @@ services:
         image: test_app:1.0
         container_name: test_app1
         ports:
-            - "32768:7000"
+            - "127.0.0.1:32768:7000"
         restart: on-failure
         depends_on:
             - pgsql
@@ -65,7 +65,7 @@ services:
         image: test_app:1.0
         container_name: test_app2
         ports:
-            - "32769:7000"
+            - "127.0.0.1:32769:7000"
         restart: on-failure
         depends_on:
             - pgsql

@@ -7,3 +7,4 @@ services:
         volumes:
             - ./prometheus.yml:/etc/prometheus/prometheus.yml
             - ./targets.json:/etc/prometheus/targets.json 
+            - ./server.crt:/etc/prometheus/server.crt

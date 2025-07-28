@@ -1,0 +1,11 @@
+[Unit]
+Description=Prometheus Node Exporter for VM
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+ExecStart=/home/developer/node_exporter/node-exporter/node_exporter --web.config.file=/home/developer/Docker_composes/Nginx_proj/web_configs/web-config.yaml
+Restart=on-failure
+
+[Install]
+WantedBy=default.target
