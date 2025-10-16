@@ -1,0 +1,6 @@
+tls_server_config:
+    cert_file: /home/developer/Docker_composes/Nginx_proj/web_configs/server.crt
+    key_file: /home/developer/Docker_composes/Nginx_proj/web_configs/server.key
+
+basic_auth_users:
+    admin: '$2y$10$UUPzrcJOtvy8MgEdF15lceD.I6r5nVtHhpDXF5eR28Ji80R4aJJ5i'

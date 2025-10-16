@@ -1,0 +1,58 @@
+global:
+  # Определяет время, через которое можно предположить,
+  # что алерт закрылся и решен
+  resolve_timeout: 5m
+
+# Пишем конфиг каналов, куда отправлять
+receivers:
+  # Название ресивера
+  - name: warning.alerts
+    # Конфиг для телеграма
+    telegram_configs:
+      # Отправлять ли сообщение, что алерт зарезолвлен
+      - send_resolved: true
+        bot_token: 7782590335:AAH29yuy5KgsJVbjE_f0x2q7H3c0H0YRSUQ
+        chat_id: -1003081580512
+        parse_mode: HTML
+
+  - name: critical.alerts
+    telegram_configs:
+      - send_resolved: true
+        bot_token: 7782590335:AAH29yuy5KgsJVbjE_f0x2q7H3c0H0YRSUQ
+        chat_id: -1003096236051
+        parse_mode: HTML
+
+# Блок, отвечающий за мьют алертов
+mute_time_intervals:
+  # Название правила
+  - name: offhours
+    # Временной интервал
+    time_intervals:
+      # Определяем дни недели
+      - weekdays: ['Saturday', 'Sunday']
+        # Определяем промежутки
+      - times:
+          # Сами промежутки
+          - start_time: 00:00
+            end_time: 24:00
+
+route:
+  # Указываем, как группировать алерты
+  group_by: [alertname, severity]
+  # Определяем интервал повторения алерта
+  repeat_interval: 20m
+  # Куда отправлять сообщения об алертах по умолчанию
+  receiver: warning.alerts
+
+  routes:
+    - receiver: critical.alerts
+      matchers:
+        - severity="critical"
+      mute_time_intervals:
+        - offhours
+      continue: false
+
+    - receiver: warning.alerts
+      matchers:
+        - severity="warning"
+      continue: false

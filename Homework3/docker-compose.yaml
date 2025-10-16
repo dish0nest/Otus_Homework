@@ -1,0 +1,90 @@
+services:
+    prometheus:
+        image: prom/prometheus:v3.5.0-rc.0
+        container_name: prometheus
+        ports:
+            - "9090:9090"
+        volumes:
+            - ./prometheus.yml:/etc/prometheus/prometheus.yml
+            - ./rules.yaml:/etc/prometheus/rules.yaml
+
+    grafana:
+        image: grafana/grafana:11.6.3
+        container_name: grafana
+        environment:
+            - GF_SECURITY_ADMIN_PASSWORD=admin
+        ports:
+            - "3000:3000"
+        depends_on:
+            - prometheus
+
+    alertmanager:
+        image: quay.io/prometheus/alertmanager
+        container_name: alertmanager
+        env_file:
+            - .env
+        volumes:
+            - ./alertmanager.yaml:/etc/alertmanager/alertmanager.yaml
+        command:
+            - '--config.file=/etc/alertmanager/alertmanager.yaml'
+        ports:
+            - "9093:9093"
+
+    casdvisor:
+        image: gcr.io/cadvisor/cadvisor:latest
+        container_name: cadvisor
+        privileged: true
+        devices:
+            - /dev/kmsg:/dev/kmsg
+        volumes:
+            - /:/rootfs:ro
+            - /var/run:/var/run:ro
+            - /sys:/sys:ro
+            - /var/lib/docker:/var/lib/docker:ro
+            - /cgroup:/cgroup:ro
+        restart: on-failure
+
+    pgsql:
+        image: postgres
+        container_name: psql
+        restart: on-failure
+        environment:
+            POSTGRES_PASSWORD: qwerty123
+
+    pgsql_exporter:
+        image: quay.io/prometheuscommunity/postgres-exporter
+        container_name: psql_exporter
+        restart: on-failure
+        environment:
+            DATA_SOURCE_UI: postgresql:5432/postgres?sslmode=disable
+            DATA_SOURCE_USER: postgres
+            DATA_SOURCE_PASS: qwerty123
+        depends_on:
+        - pgsql
+
+    blackbox:
+        image: quay.io/prometheus/blackbox-exporter
+        container_name: blackbox
+        volumes:
+            - ./blackbox.yml:/config/blackbox.yml
+        command:
+            - '--config.file=/config/blackbox.yml'
+
+    test_app1:
+        image: test_app:1.0
+        container_name: test_app1
+        restart: on-failure
+        ports:
+            - "127.0.0.1:32768:7000"
+        depends_on:
+            - pgsql
+
+    test_app2:
+        image: test_app:1.0
+        container_name: test_app2
+        restart: on-failure
+        ports:
+            - "127.0.0.1:32769:7000"
+        depends_on:
+            - pgsql
+
