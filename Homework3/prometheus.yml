@@ -1,0 +1,60 @@
+global:
+    # Сбор метрик каждые 5 секунд
+    scrape_interval: 5s
+
+scrape_configs:
+    # Сбор метрик, таргеты прописаны в отдельном json
+    # Используется аутентификация с помощью сертификата и данных УЗ
+#    - job_name: "nodes"
+#      # схема подключения по https
+#      scheme: https
+#      file_sd_configs:
+#          - files:
+#                - /etc/prometheus/targets.json
+#      tls_config:
+#          ca_file: /etc/prometheus/server.crt
+#      basic_auth:
+#          username: admin
+#          password: qwerty123
+    # Проверка работоспособности двух котнейнеров, где работает приложение по http
+    - job_name: "blackbox_health"
+      metrics_path: /probe
+      scheme: http
+      params:
+          module: [http_2xx]
+      static_configs:
+          - targets:
+                - http://192.168.56.101:32768
+                - http://192.168.56.101:32679
+      relabel_configs:
+          - source_labels: [__address__]
+            target_label: __param_target
+          - source_labels: [__param_target]
+            target_label: instance
+          - target_label: __address__
+            replacement: blackbox:9115
+#      tls_config:
+#         ca_file: /etc/prometheus/server.crt
+#      basic_auth:
+#         username: admin
+#         password: qwerty123
+    - job_name: "vm"
+      static_configs:
+        - targets: ['192.168.56.101:9100']
+    - job_name: "blackbox_metr"
+      static_configs:
+        - targets: ['blackbox:9115']
+    - job_name: "postgre"
+      static_configs:
+        - targets: ['pgsql_exporter:9187']
+    - job_name: "docker"
+      static_configs:
+        - targets: ['cadvisor:8080']
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+rule_files:
+  - rules.yaml
