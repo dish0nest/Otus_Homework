@@ -1,0 +1,40 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'observability'
+
+remote_write:
+  - url: "http://victoriametrics:8428/api/v1/write"
+    queue_config:
+      capacity: 1000
+      max_samples_per_send: 10000
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+scrape_configs:
+  - job_name: 'consul-services'
+    consul_sd_configs:
+    - server: '192.168.32.140:8500'
+      scheme: http
+    relabel_configs:
+    - source_labels: [__address__]
+      regex: (.*)[:].+
+      target_label: instance
+      replacement: '${1}'
+    - source_labels: [__meta_consul_service]
+      target_label: 'job'
+    - source_labels: [__meta_consul_node]
+      target_label: 'node'
+    - source_labels: [__meta_consul_tags]
+      regex: ',(?:[^,]+,){0}([^=]+)=([^,]+),.*'
+      target_label: '${1}'
+      replacement: '${2}'
+  - job_name: postgres
+    static_configs:
+      - targets: ["192.168.32.142:9187"] 
+rule_files:
+  - "alert_rules.yml"

@@ -1,0 +1,163 @@
+groups:
+  - name: host-alerts
+    rules:
+      - alert: HostDown
+        expr: up == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "Хост {{ $labels.instance }} недоступен"
+          description: "Цель не отвечает более 30 секунд"
+
+      - alert: HostOutOfMemory
+        expr: (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) < 0.1
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "На хосте {{ $labels.instance }} осталось < 10% памяти"
+          description: "Доступно {{ printf \"%.2f\" $value }}% RAM"
+
+      - alert: HostHighCPU
+        expr: '100 - (avg by(instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90'
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CPU usage > 90% на {{ $labels.instance }}"
+          description: "Средняя загрузка CPU за 5 минут превышает 90%"
+
+      - alert: HostDiskWillFillIn24Hours
+        expr: predict_linear(node_filesystem_free_bytes{mountpoint="/",fstype!="rootfs"}[6h], 3600 * 24) < 0
+        for: 10m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Диск на {{ $labels.instance }} заполнится в течение 24 часов"
+          description: "Прогноз: место закончится из-за роста логов или данных"
+
+  - name: container-alerts
+    rules:
+      - alert: ContainerDown
+        expr: cadvisor_container_last_seen <= (time() - 60)
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Контейнер {{ $labels.name }} на {{ $labels.instance }} упал"
+          description: "Контейнер не перезапускается более 60 секунд"
+
+      - alert: HighContainerRestartRate
+        expr: changes(container_last_seen{name!=""}[10m]) > 3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Контейнер {{ $labels.name }} часто перезапускается"
+          description: "Более 3 перезапусков за 10 минут — возможна ошибка в приложении"
+
+  - name: postgresql-alerts
+    rules:
+      - alert: PostgresDown
+        expr: up{job="postgres"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "PostgreSQL недоступен"
+          description: "Сервер БД не отвечает"
+
+      - alert: PostgresTooManyConnections
+        expr: pg_stat_database_numbackends > 90
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Слишком много подключений к PostgreSQL"
+          description: "{{ $value }} активных подключений — близко к лимиту"
+
+      - alert: PostgresSlowQueries
+        expr: rate(pg_stat_statements_mean_time[5m]) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Обнаружены медленные запросы в PostgreSQL"
+          description: "Среднее время запроса > 1 сек"
+
+      - alert: PostgresReplicationLag
+        expr: pg_stat_replication_pg_wal_lsn_diff > 10000000
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Большой лаг репликации в PostgreSQL"
+          description: "Отставание реплики: {{ $value | humanize }} байт"
+
+  - name: rabbitmq-alerts
+    rules:
+      - alert: RabbitMQDown
+        expr: up{job="rabbitmq"} == 0
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "RabbitMQ недоступен"
+          description: "Брокер сообщений не отвечает"
+
+      - alert: RabbitMQQueueBacklog
+        expr: rabbitmq_queue_messages > 10
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Очередь {{ $labels.queue }} растёт"
+          description: "{{ $value }} сообщений в очереди — потребитель не справляется"
+
+      - alert: RabbitMQNoConsumers
+        expr: rabbitmq_queue_consumers == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Нет потребителей в очереди {{ $labels.queue }}"
+          description: "Сообщения накапливаются, но никто их не обрабатывает"
+
+      - alert: RabbitMQConnectionSpam
+        expr: rate(rabbitmq_connections_created_total[5m]) > 10
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Подозрительная активность подключений к RabbitMQ"
+          description: "Более 10 новых подключений в минуту — возможна утечка соединений"
+
+  - name: application-alerts
+    rules:
+      - alert: HighHTTPErrorRate
+        expr: rate(http_requests_total{status=~"5.."}[5m]) / rate(http_requests_total[5m]) > 0.05
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Высокий уровень 5xx ошибок в сервисе {{ $labels.job }}"
+          description: "Более 5% запросов завершаются с ошибкой"
+
+      - alert: ServiceLatencyHigh
+        expr: histogram_quantile(0.95, rate(http_request_duration_seconds_bucket[5m])) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "95-й перцентиль задержки > 1 сек в {{ $labels.job }}"
+          description: "Пользователи испытывают тормоза"
+
+      - alert: CheckoutServiceFailure
+        expr: rate(checkoutservice_place_order_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Ошибки при оформлении заказов"
+          description: "Сервис checkoutservice не может завершить заказ"
